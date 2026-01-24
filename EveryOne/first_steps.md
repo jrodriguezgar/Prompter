@@ -57,6 +57,24 @@ Follow one of these proven structural patterns:
 | Under-Specification | Insufficient detail leads to generic, unhelpful outputs |
 | Error Case Overload | Don't focus on what could go wrong; state what you want to achieve |
 
+### Controlling Model Behavior
+
+| Best Practice | Application |
+|---------------|-------------|
+| **Minimize Noise & Entropy** | Keep prompts focused; remove irrelevant information that dilutes intent |
+| **Bridge Unrelated Domains** | Provide explicit guidance when connecting disparate concepts to prevent unexpected outputs |
+| **Enforce Thoroughness** | Specify execution style (step-by-step, iterate through all items, validate each step) to overcome lazy evaluation patterns |
+
+**Thoroughness Examples:**
+
+❌ **Lazy:** "Review the code files and fix any issues"
+
+✅ **Explicit:** "Review each file in the `src/` directory one by one. For each file: (1) Check for syntax errors, (2) Identify security vulnerabilities, (3) Suggest performance improvements. Complete all three checks for every file before moving to the next."
+
+❌ **Vague:** "Analyze this dataset and give insights"
+
+✅ **Detailed:** "Process all rows in the dataset. For each row: validate data types, check for null values, compute statistical summaries. Then iterate through each column and provide distribution analysis. Finally, cross-reference all findings in a summary table."
+
 ### Output Format Preferences
 
 **Prefer YAML over JSON** for tabular data retrieval:
