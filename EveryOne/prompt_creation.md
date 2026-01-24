@@ -9,11 +9,13 @@ Create an effective prompt following these principles:
 4. **Output** → Expected deliverable format
 
 ## Quality Rules
-1. Eliminate ambiguity → Use precise language, no vague terms
-2. Provide full context → Background, constraints, examples
-3. Compress information → Dense, high-signal content, no fluff
-4. Trigger deep reasoning → Use "think step-by-step", decompose complex tasks
-5. Be explicit about output format → Structure, length, style
+1. **Default to English** → Use English unless explicitly specified otherwise
+2. **Eliminate ambiguity** → Precise language, no vague terms
+3. **Provide full context** → Background, constraints, examples
+4. **Be explicit about output format** → Structure, length, style
+5. **Compress information** → Dense, high-signal content, no fluff
+6. **Token-efficient writing** → Tables > prose, bullets > paragraphs, symbols (→ × ✓) > words
+7. **Trigger deep reasoning** → Use "think step-by-step", decompose complex tasks
 
 ## Problem-Solving Triggers
 Include one or more when needed:

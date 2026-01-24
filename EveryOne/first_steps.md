@@ -1,35 +1,128 @@
 # 🚀 Mastering LLM Interactions: Core Principles
 
-To get the most out of Large Language Models, you need to shift your mindset from "using a tool" to "collaborating with another kind of intelligence." Use these guidelines to optimize your workflow and output quality.
+Shift your mindset from "using a tool" to "collaborating with another kind of intelligence."
 
 ---
 
-### 💡 The Mindset
+## ⚡ Quick Start
 
-* **Never Underestimate the Model:** Assume the LLM is more capable than you think. Don't limit its potential by over-simplifying your requests.
-* **Let the LLM Take the Lead:** Give the model the autonomy to propose solutions or structures you might not have considered.
-* **Make it a Conversation:** Don't treat it as a one-off command. Iterative dialogue yields much more refined results than a single prompt.
-* **Be Communicative:** Explain your reasoning and "why" behind a task. The more the model understands your intent, the better it performs.
+1. **Define a role** → "Act as a Senior Python Developer"
+2. **Be specific** → State exactly what you need, not vague goals
+3. **Provide context** → Background, constraints, examples
+4. **Specify output** → Format, length, structure
+5. **Iterate** → Refine through dialogue, not one-shot prompts
 
-### 🛠 Prompt Engineering & Optimization
+---
 
-* **Eliminate Ambiguity:** Be precise with your language. Vague prompts lead to generic or hallucinated answers.
-* **Provide Full Context:** High-quality output is directly proportional to the quality of the background information you provide.
-* **Compress Information:** To save on token usage and stay within context windows, provide dense, high-signal information and remove fluff.
-* **Trigger "Deep Thinking":** Use techniques like Keys Words or Chain-of-Thought ("think step-by-step") to activate as many of the model's "neurons" and reasoning paths as possible.
+## 💡 The Mindset
 
-### 🧹 Context Management
+| Principle | Description |
+|-----------|-------------|
+| Never Underestimate | Assume the LLM is more capable than you think |
+| Let It Lead | Give autonomy to propose solutions you haven't considered |
+| Make It a Conversation | Iterative dialogue yields better results than single prompts |
+| Be Communicative | Explain your reasoning and "why" behind tasks |
+| Don't Be Shy | Ask anything, do whatever — there are no dumb questions or "wrong" experiments with an LLM |
 
-* **Compile and Refresh Context:** When you notice the model's performance degrading, ask the LLM to summarize the key points of the current session.
-* **Clean the Slate:** Once a summary is generated, start a fresh session or clear the history using that summary to maintain a clean, high-focus environment.
+---
 
-### 🎯 Problem-Solving Techniques
+## 🛠 Prompt Engineering
 
-* **First Principles:** Discard assumptions → Rebuild from fundamental truths.
-* **Planning:** Define a roadmap before execution → Strategy first, action second.
-* **Task Decomposition:** Break complex problems into sub-tasks → Solve parts, then integrate.
-* **Constraint Relaxation:** Remove restrictions temporarily → See what solution emerges → Reintroduce limits.
-* **Simplification:** Reduce to core problem first → Add complexity gradually.
-* **Exemplification:** Use concrete examples → Sample inputs/outputs, analogies, real-world scenarios.
-* **Reverse Engineering:** Start from desired outcome → Work backwards to identify required steps.
-* **Iteration:** Refine through multiple passes → Draft → Improve → Polish.
+| Technique | Action |
+|-----------|--------|
+| Eliminate Ambiguity | Use precise language, no vague terms |
+| Provide Full Context | Quality output ∝ quality of background info |
+| Compress Information | Dense, high-signal content; remove fluff |
+| Trigger Deep Thinking | Use "think step-by-step", keywords, Chain-of-Thought |
+
+### Before/After Example
+
+❌ **Vague:** "Write a function to process data"
+
+✅ **Specific:** "Write a Python function that reads a CSV file, filters rows where 'status' equals 'active', and returns a list of dictionaries. Include type hints and docstring."
+
+### Effective Prompt Patterns
+
+Follow one of these proven structural patterns:
+
+- **Role - Task - Example**: Define who the LLM should act as, what it needs to do, and provide a concrete example
+- **Instruction - Context - Data**: State the action, provide background information, then supply the data to work with
+- **Plan - Knowledge Domain - Tool**: Outline the strategy, specify the area of expertise needed, and indicate any tools or frameworks to use
+
+### Anti-Patterns to Avoid
+
+| Anti-Pattern | Why to Avoid |
+|--------------|--------------|
+| Over-Constraint | Too many restrictions limit creative and optimal solutions |
+| Under-Specification | Insufficient detail leads to generic, unhelpful outputs |
+| Error Case Overload | Don't focus on what could go wrong; state what you want to achieve |
+
+### Output Format Preferences
+
+**Prefer YAML over JSON** for tabular data retrieval:
+- More human-readable
+- Less verbose syntax
+- Easier to parse and maintain
+- Better for configuration and structured data
+
+---
+
+## 🧹 Context Management
+
+### Active Management
+
+| Strategy | Application |
+|----------|-------------|
+| **Window Awareness** | Know your LLM's limits (~128k tokens); monitor usage |
+| **Progressive Loading** | Core info first → details later; layer information |
+| **Structured Input** | Use markdown, tables, bullets for dense data |
+| **Prioritization** | Critical info at start/end (better retention zones) |
+| **Anchor Points** | Create references: "as in section A..." for coherence |
+
+### Maintenance & Optimization
+
+| Technique | When/How |
+|-----------|----------|
+| **Periodic Summaries** | Every 10-15 exchanges → request executive summary |
+| **Context Injection** | Repeat key info when switching subtasks |
+| **Task Chunking** | Divide long conversations into thematic sessions |
+| **Reference Outputs** | "Using the function from earlier..." maintains continuity |
+
+### Degradation Signals & Recovery
+
+**Warning Signs:** Generic responses • Forgets prior decisions • Contradicts earlier info • Repetitive patterns
+
+**Solution:** Compile summary → Start fresh session with clean context → Use workspace as external memory
+
+### Preservation Tactics
+
+- Export key decisions to files
+- Maintain updated "state document"
+- Leverage workspace as persistent memory layer
+
+---
+
+## 🎯 Problem-Solving Techniques
+
+| Technique | How to Apply |
+|-----------|--------------|
+| First Principles | Discard assumptions → Rebuild from fundamentals |
+| Planning | Strategy first → Define roadmap before execution |
+| Task Decomposition | Break into sub-tasks → Solve parts → Integrate |
+| Constraint Relaxation | Remove limits → See solution → Reintroduce constraints |
+| Simplification | Core problem first → Add complexity gradually |
+| Exemplification | Use concrete examples, sample I/O, analogies |
+| Reverse Engineering | Start from outcome → Work backwards |
+| Iteration | Draft → Improve → Polish |
+
+---
+
+## ❌ Common Mistakes
+
+| Mistake | Fix |
+|---------|-----|
+| "Make it better" | Specify what "better" means (faster, shorter, clearer) |
+| Assuming context | Always provide background, don't assume LLM knows your project |
+| Multiple tasks in one prompt | One clear task per prompt |
+| No output format | Always specify structure, length, style |
+| Giving up after first try | Iterate and refine through dialogue |
