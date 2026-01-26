@@ -23,6 +23,7 @@ Shift your mindset from "using a tool" to "collaborating with another kind of in
 | Make It a Conversation | Iterative dialogue yields better results than single prompts |
 | Be Communicative | Explain your reasoning and "why" behind tasks |
 | Don't Be Shy | Ask anything, do whatever — there are no dumb questions or "wrong" experiments with an LLM |
+| English Communication | English consistently produces better results due to richer training data and broader linguistic patterns |
 
 ---
 
@@ -135,6 +136,44 @@ Follow one of these proven structural patterns:
 
 ---
 
+## 🔄 Breaking Out of Stuck Loops
+
+When results stop improving despite iterations:
+
+| Technique | Application |
+|-----------|-------------|
+| **Provide Working Example** | Give a concrete example that works as reference: "Here's what works for case X, apply the same pattern to case Y" |
+| **Request Analysis** | Ask the LLM to analyze why current approach isn't working: "Explain why this solution fails to meet requirements" |
+| **Switch Models** | Try a different model — each has strengths in different domains and problem types |
+| **Modify Context** | Add missing information, remove noise, or restructure existing context for clarity |
+| **Request Alternatives** | Explicitly ask for multiple different approaches: "Provide 3 completely different solutions to this problem" |
+| **Change Perspective** | Shift the role: "As a security expert, review this" vs "As a performance engineer, review this" |
+| **Simplify First** | Reduce to minimal working version, then build back complexity incrementally |
+| **Fresh Start** | New session with executive summary of problem + what hasn't worked + constraints |
+| **Collaborative Debug** | Step-by-step analysis: "Let's identify exactly where this breaks. Test each part individually" |
+
+---
+
+## 🎭 Understanding Hallucinations
+
+How to minimize false or fabricated outputs:
+
+| Principle | Description |
+|-----------|-------------|
+| **Keep Tasks in Same Context** | Divide complex tasks within the same conversation context rather than splitting across multiple contexts or agents — continuity reduces hallucinations and maintains factual consistency |
+| **Avoid Disconnected Domains** | Bridging unrelated domains without explicit guidance generates hallucinations. Provide clear connections and context when combining disparate concepts or knowledge areas |
+| **Request Sources** | Ask the LLM to cite sources or reference specific parts of provided context: "Quote the exact section that supports this" |
+| **Enable "I Don't Know"** | Explicitly permit uncertainty: "If you're not certain, say 'I don't know' rather than guessing" |
+| **Anchor to Documentation** | Provide specific documentation, code, or data as context and instruct: "Base your answer only on the provided material" |
+| **Request Confidence Levels** | Ask for certainty indicators: "Rate your confidence in this answer (low/medium/high) and explain why" |
+| **Distinguish Facts from Inference** | Instruct to separate: "Clearly label what is factual vs what is inferred or assumed" |
+| **Use Structured Output** | For factual responses, request structured formats (tables, lists with sources) that enforce accountability |
+| **Lower Temperature** | Use lower temperature settings (0.0-0.3) for factual, deterministic tasks to reduce creative fabrication |
+| **Validate Critical Information** | Cross-check critical outputs against known sources or request step-by-step reasoning to expose inconsistencies |
+| **Avoid Leading Questions** | Don't suggest answers in your questions — let the LLM derive conclusions from provided context independently |
+
+---
+
 ## ❌ Common Mistakes
 
 | Mistake | Fix |
@@ -144,3 +183,24 @@ Follow one of these proven structural patterns:
 | Multiple tasks in one prompt | One clear task per prompt |
 | No output format | Always specify structure, length, style |
 | Giving up after first try | Iterate and refine through dialogue |
+
+---
+
+## 🤖 Agentic Behavior
+
+Understanding how LLM agents work:
+
+| Principle | Description |
+|-----------|-------------|
+| **You're an Agent Too** | When working with an LLM, you become part of an agentic system — your guidance, decisions, and feedback shape the agent's actions and outcomes |
+| **Agents Can Reduce Performance** | Agentic systems add layers (planning, tool use, multi-step reasoning) that can introduce latency, errors, or over-complexity. Not every task benefits from agentic behavior — sometimes direct prompting is faster and more reliable |
+| **Know When to Be Agentic** | Use agents for complex multi-step tasks requiring planning and iteration. Use direct prompts for simple, specific tasks with clear single-step solutions |
+| **Control Autonomy Level** | Define clearly how much freedom the agent has to make decisions vs when it must consult or ask for confirmation |
+| **Cost Awareness** | Agents consume more tokens (multiple calls, planning, tool use). Monitor costs especially in repetitive or production tasks |
+| **Observe and Debug** | Agentic systems are harder to debug. Implement logging and traceability of decisions to understand the agent's reasoning path |
+| **Fail Gracefully** | Define iteration limits and stop conditions to prevent infinite loops or runaway processes |
+| **Tool Selection Matters** | Limit available tools to strictly necessary ones. Too many options increase confusion and error rates |
+| **Atomic Tasks** | Decompose large objectives into atomic tasks the agent can complete successfully in focused steps |
+| **Validation Loops** | Include human validation at critical decision points in the agentic flow |
+| **Progressive Autonomy** | Start with limited autonomy, increase based on results and reliability over time |
+| **Multi-Agent Collaboration Degrades Solutions** | Agent-to-agent collaboration often degrades solution quality due to: lack of shared context, poor integration of partial solutions, required trust between agents without verification mechanisms, and limited inherent capacity for effective collaboration |
