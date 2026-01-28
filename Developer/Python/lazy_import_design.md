@@ -57,36 +57,73 @@ def _find_pyproject_dir() -> str:
 def install_library(library_name: str, import_name: str = None) -> bool:
     """Auto-install missing libraries via pip or uv (auto-detected).
     Args: library_name (PyPI), import_name (module, optional)
-    Returns: True if available/installed, False if failed"""
+    Returns: True if available/installed, False if failed
+    
+    Uses importlib.invalidate_caches() after installation to ensure
+    newly installed packages are discoverable in the current session."""
+    import importlib
     check_name = import_name if import_name else library_name
+    
+    # Try to import the module first
     try:
-        __import__(check_name)
+        importlib.import_module(check_name)
         return True
     except ImportError:
-        print(f"Installing '{library_name}'...")
-        try:
-            if _is_uv_managed_environment():
-                project_dir = _find_pyproject_dir()
-                if project_dir:
-                    # Use 'uv add' - updates pyproject.toml and installs
-                    subprocess.check_call(["uv", "add", library_name], cwd=project_dir)
-                else:
-                    subprocess.check_call(["uv", "pip", "install", "--system", library_name])
+        pass
+    
+    # Module not found, try to install it
+    print(f"Installing '{library_name}'...")
+    try:
+        if _is_uv_managed_environment():
+            project_dir = _find_pyproject_dir()
+            if project_dir:
+                # Use 'uv add' - updates pyproject.toml and installs
+                subprocess.check_call(["uv", "add", library_name], cwd=project_dir)
             else:
-                subprocess.check_call([sys.executable, "-m", "pip", "install", library_name])
-            print(f"✓ '{library_name}' installed")
+                subprocess.check_call(["uv", "pip", "install", "--system", library_name])
+        else:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", library_name])
+        
+        # CRITICAL: Refresh import system to find newly installed packages
+        importlib.invalidate_caches()
+        
+        # Remove from sys.modules if it was cached as failed/None
+        # This is necessary because Python may have cached a failed import
+        if check_name in sys.modules:
+            del sys.modules[check_name]
+        # Also remove any submodules that might have been partially loaded
+        to_remove = [key for key in sys.modules if key.startswith(check_name + '.')]
+        for key in to_remove:
+            del sys.modules[key]
+        
+        # Verify the import works after installation
+        try:
+            importlib.import_module(check_name)
+            print(f"✓ '{library_name}' installed and loaded")
             return True
-        except subprocess.CalledProcessError:
-            print(f"✗ Failed to install '{library_name}'")
+        except ImportError as e:
+            print(f"✗ '{library_name}' installed but import failed: {e}")
             return False
-        except FileNotFoundError:
-            # uv not found, fallback to pip
+            
+    except subprocess.CalledProcessError:
+        print(f"✗ Failed to install '{library_name}'")
+        return False
+    except FileNotFoundError:
+        # uv not found, fallback to pip
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", library_name])
+            importlib.invalidate_caches()
+            if check_name in sys.modules:
+                del sys.modules[check_name]
             try:
-                subprocess.check_call([sys.executable, "-m", "pip", "install", library_name])
+                importlib.import_module(check_name)
+                print(f"✓ '{library_name}' installed and loaded")
                 return True
-            except subprocess.CalledProcessError:
-                print(f"✗ Failed. For uv envs: uv add {library_name}")
+            except ImportError:
                 return False
+        except subprocess.CalledProcessError:
+            print(f"✗ Failed. For uv envs: uv add {library_name}")
+            return False
 ```
 
 ## Package Manager Detection
@@ -195,6 +232,41 @@ C:\...\uv\python\...\python.exe script.py
 | Logging | Keep print feedback |
 | Return checks | Validate critical deps |
 | uv projects | Always use `uv run` |
+| Import method | Use `importlib.import_module()` not `__import__()` |
+| Cache refresh | Always call `importlib.invalidate_caches()` after install |
+| sys.modules | Clear module and submodules from `sys.modules` after install |
+
+### Critical: importlib.invalidate_caches()
+
+When installing packages at runtime, Python's import system may have cached that a module doesn't exist. After installing, you **must** call `importlib.invalidate_caches()` to refresh the finder caches, otherwise the import will fail even though the package is installed.
+
+### Critical: Clear sys.modules cache
+
+If a previous import attempt failed, Python may have cached a `None` or partial entry in `sys.modules`. You must remove these before re-importing:
+
+```python
+import importlib
+import subprocess
+import sys
+
+# Install the package
+subprocess.check_call([sys.executable, "-m", "pip", "install", "some-package"])
+
+# CRITICAL: Refresh finder caches
+importlib.invalidate_caches()
+
+# CRITICAL: Remove failed import cache from sys.modules
+check_name = "some_package"
+if check_name in sys.modules:
+    del sys.modules[check_name]
+# Also remove any submodules
+to_remove = [key for key in sys.modules if key.startswith(check_name + '.')]
+for key in to_remove:
+    del sys.modules[key]
+
+# Now the import will work
+import some_package
+```
 
 ## Use Cases
 
