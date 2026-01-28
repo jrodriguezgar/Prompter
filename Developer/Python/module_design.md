@@ -30,10 +30,14 @@ Follow this order within a Python file:
 
 ## Code Standards
 
-1. **Naming**: 
-   - snake_case for functions, variables, modules
-   - PascalCase for classes
-   - UPPER_CASE for constants
+1. **Naming Conventions**:
+   
+   | Element | Style | Example |
+   |---------|-------|---------|
+   | Constants | UPPER_SNAKE_CASE | `MAX_RETRIES` |
+   | Variables, functions, modules | lower_snake_case | `my_variable`, `calculate_total()` |
+   | Classes | CamelCase | `MyClass`, `CustomError` |
+
 2. **Type Hints**: All function signatures, class attributes, and return values
 3. **Docstrings**: All public functions, classes, and modules (Google or NumPy style)
 4. **Error Handling**: Custom exceptions for domain-specific errors
