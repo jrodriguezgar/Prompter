@@ -18,15 +18,27 @@ Follow this order within a Python file:
 
 1. **Module docstring** — Brief description and usage
 2. **Future imports** — `from __future__ import annotations`
-3. **Imports** — Standard library → third-party → local (grouped and sorted)
+3. **Imports** — Organized in groups, separated by blank lines:
+   - **Group 1**: Standard library (Python built-in modules)
+   - **Group 2**: Third-party libraries (external packages from PyPI)
+   - **Group 3**: Local/project imports (developer's own modules)
+   - Each group sorted alphabetically
 4. **Public API definition** — `__all__` list
-5. **Module-level constants** — Configuration and constants
-6. **Type definitions** — TypeVar, Protocol, type aliases
-7. **Exceptions** — Custom exception classes
-8. **Data models** — dataclasses, enums, data structures
-9. **Private helpers** — Internal utility functions (prefixed with `_`)
-10. **Public functions** — Main module API
-11. **Classes** — Public classes with methods
+5. **Global constants** — Organized in this order:
+   - Environment constants (from `os.environ`)
+   - Configuration constants (paths, URLs, settings)
+   - Domain/business constants (limits, defaults, magic numbers)
+   - All using UPPER_SNAKE_CASE
+6. **Global variables** — Organized in this order:
+   - Logger instance (`logger = logging.getLogger(__name__)`)
+   - Caches and registries
+   - Mutable state (use sparingly)
+7. **Type definitions** — TypeVar, Protocol, type aliases
+8. **Exceptions** — Custom exception classes
+9. **Data models** — dataclasses, enums, data structures
+10. **Private helpers** — Internal utility functions (prefixed with `_`)
+11. **Public functions** — Main module API
+12. **Classes** — Public classes with methods
 
 ## Code Standards
 

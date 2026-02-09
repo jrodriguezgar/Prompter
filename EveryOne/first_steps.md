@@ -102,6 +102,7 @@ Follow one of these proven structural patterns:
 
 | Technique | When/How |
 |-----------|----------|
+| **Work Documentation** | Request a document detailing completed work → understand what was done, decisions made, and changes applied |
 | **Periodic Summaries** | Every 10-15 exchanges → request executive summary |
 | **Context Injection** | Repeat key info when switching subtasks |
 | **Task Chunking** | Divide long conversations into thematic sessions |
