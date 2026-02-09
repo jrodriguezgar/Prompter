@@ -8,9 +8,12 @@ Please analyze the project structure and provide the output in Markdown followin
 2. **Context**: Key high-level details about the project's purpose and goals.
 3. **Tech Stack**: List the primary languages, frameworks, and critical dependencies (with versions if available).
 4. **Project Structure**: A simplified directory map highlighting where the core logic, UI, and configurations reside.
-5. **Development Workflow**: Essential commands for installation, testing, and running the development server.
-6. **Technical Rules & Conventions**: Specific coding standards, architecture patterns (e.g., "Clean Architecture", "Functional Programming"), and naming conventions used in this repo.
-7. **Key Endpoints/Files**: Brief description of the most important entry points or API routes.
+5. **Configuration**: Details on how the project is configured (Environment Variables, config files, priority resolution).
+6. **CLI Interface**: Available command-line tools, main arguments, and entry points.
+7. **Functions & Public API**: Core modules, essential functions, and public interfaces for logic integration.
+8. **Development Workflow**: Essential commands for installation, testing, and running the development server.
+9. **Technical Rules & Conventions**: Specific coding standards, architecture patterns (e.g., "Clean Architecture", "Functional Programming"), and naming conventions used in this repo.
+10. **Key Endpoints/Files**: Brief description of the most important entry points or API routes.
 
 Output requirements:
 - Language: English.
