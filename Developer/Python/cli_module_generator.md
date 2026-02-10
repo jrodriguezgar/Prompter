@@ -1,17 +1,18 @@
 # Role: Senior Python CLI Developer
 
-Generate a robust command-line interface module following Python best practices with argparse extensions, colored output, and progress indicators.
+Generate a robust command-line interface module following Python best practices with argparse extensions, subcommands, colored output, and progress indicators.
 
 ## Requirements
 
-1. **Class-based design** → Single `CLIBase` class with argument groups and output utilities
-2. **Type hints** → Full typing with `Optional`, `List`, `Dict`, `Any`, `Union`
-3. **Colored output** → ANSI codes with Windows compatibility (ctypes/colorama fallback)
-4. **Progress indicators** → Progress bars, spinners, and formatted tables
-5. **Parameter files** → Support for `@file.txt` syntax to load arguments from files
-6. **Dry-run mode** → Built-in simulation capability without making changes
-7. **Confirmation prompts** → Interactive user confirmation for destructive operations
-8. **Logging integration** → Verbosity levels mapped to Python logging
+1. **Class-based design** → Single `CLIBase` class with argument groups, subcommands, and output utilities
+2. **Subcommand support** → Full subcommand/subparser support with handlers and aliases
+3. **Type hints** → Full typing with `Optional`, `List`, `Dict`, `Any`, `Union`, `Callable`
+4. **Colored output** → ANSI codes with Windows compatibility (ctypes/colorama fallback)
+5. **Progress indicators** → Progress bars, spinners, and formatted tables
+6. **Parameter files** → Support for `@file.txt` syntax to load arguments from files
+7. **Dry-run mode** → Built-in simulation capability without making changes
+8. **Confirmation prompts** → Interactive user confirmation for destructive operations
+9. **Logging integration** → Verbosity levels mapped to Python logging
 
 ## Input Variables
 
@@ -35,8 +36,9 @@ Generate a robust command-line interface module following Python best practices 
 
 Usage:
     python -m {module_name} --help
+    python -m {module_name} <command> --help
     python -m {module_name} @params.txt
-    python -m {module_name} --source file.csv --format json --output result.json
+    python -m {module_name} convert --source file.csv --format json --output result.json
 
 Author: Your Name
 Version: {version}
@@ -49,13 +51,14 @@ import os
 import argparse
 import json
 import logging
-from typing import Optional, Dict, Any, List, Union
-from dataclasses import dataclass
+from typing import Optional, Dict, Any, List, Union, Callable
+from dataclasses import dataclass, field
 from enum import Enum
 from datetime import datetime
 
 __all__ = [
     "CLIBase",
+    "Subcommand",
     "OutputFormat",
     "Colors",
     "print_success",
@@ -299,18 +302,39 @@ class CLIConfig:
     default_page_size: int = 1000
 
 
+@dataclass
+class Subcommand:
+    """Definition of a CLI subcommand."""
+    name: str
+    help: str
+    handler: Callable[[argparse.Namespace, 'CLIBase'], None] = None
+    aliases: List[str] = field(default_factory=list)
+    parser: argparse.ArgumentParser = None
+
+
 # ============================================================================
 # CLI BASE CLASS
 # ============================================================================
 
 class CLIBase:
-    """Base class for CLI applications with consistent behavior.
+    """Base class for CLI applications with consistent behavior and subcommand support.
     
-    Usage:
+    Usage without subcommands:
         cli = CLIBase(prog="{module_name}", description="{description}", version="{version}")
-        cli.add_output_group()
+        cli.add_export_group()
         args = cli.parse_args()
         cli.print_summary({{'processed': 100, 'errors': 0}})
+    
+    Usage with subcommands:
+        cli = CLIBase(prog="{module_name}", description="{description}", version="{version}")
+        cli.init_subcommands()
+        
+        # Add subcommand with handler
+        convert_cmd = cli.add_subcommand("convert", "Convert files", handler=run_convert)
+        convert_cmd.add_argument('--input', '-i', required=True)
+        
+        args = cli.parse_args()
+        cli.run()  # Executes the appropriate handler
     """
     
     def __init__(
@@ -340,9 +364,127 @@ class CLIBase:
         self._add_global_arguments()
         
         self._groups: Dict[str, argparse._ArgumentGroup] = {}
+        self._subparsers: argparse._SubParsersAction = None
+        self._subcommands: Dict[str, Subcommand] = {}
+        self._handlers: Dict[str, Callable] = {}
         self.args = None
         self.stats: Dict[str, int] = {}
         self.start_time: datetime = None
+    
+    # -------------------------------------------------------------------
+    # SUBCOMMAND SUPPORT
+    # -------------------------------------------------------------------
+    
+    def init_subcommands(self, title: str = "Commands", dest: str = "command") -> argparse._SubParsersAction:
+        """
+        Initialize subcommand support. Must be called before add_subcommand().
+        
+        Args:
+            title: Title for the subcommands section in help
+            dest: Attribute name where the subcommand name will be stored
+        
+        Returns:
+            The subparsers action object
+        """
+        self._subparsers = self.parser.add_subparsers(
+            title=title,
+            dest=dest,
+            help="Available commands (use '<command> --help' for details)"
+        )
+        return self._subparsers
+    
+    def add_subcommand(
+        self,
+        name: str,
+        help: str,
+        handler: Callable[[argparse.Namespace, 'CLIBase'], None] = None,
+        aliases: List[str] = None
+    ) -> argparse.ArgumentParser:
+        """
+        Add a subcommand to the CLI.
+        
+        Args:
+            name: Subcommand name (e.g., 'convert', 'validate')
+            help: Help text for the subcommand
+            handler: Optional function to handle this subcommand
+            aliases: Optional list of aliases for the subcommand
+        
+        Returns:
+            The subcommand's ArgumentParser for adding arguments
+        
+        Example:
+            convert_parser = cli.add_subcommand("convert", "Convert files", handler=run_convert)
+            convert_parser.add_argument('--input', '-i', required=True)
+        """
+        if not self._subparsers:
+            self.init_subcommands()
+        
+        aliases = aliases or []
+        subparser = self._subparsers.add_parser(
+            name,
+            help=help,
+            aliases=aliases,
+            formatter_class=argparse.RawDescriptionHelpFormatter
+        )
+        
+        # Add global options to subcommand
+        self._add_global_arguments_to_subparser(subparser)
+        
+        subcommand = Subcommand(
+            name=name,
+            help=help,
+            handler=handler,
+            aliases=aliases,
+            parser=subparser
+        )
+        self._subcommands[name] = subcommand
+        for alias in aliases:
+            self._subcommands[alias] = subcommand
+        
+        if handler:
+            self._handlers[name] = handler
+            for alias in aliases:
+                self._handlers[alias] = handler
+        
+        return subparser
+    
+    def _add_global_arguments_to_subparser(self, subparser: argparse.ArgumentParser) -> None:
+        """Add global options to a subparser."""
+        grp = subparser.add_argument_group("Global Options")
+        grp.add_argument('--verbose', '-v', action='count', default=0,
+                         help="Increase verbosity (-v=INFO, -vv=DEBUG)")
+        grp.add_argument('--quiet', '-q', action='store_true',
+                         help="Suppress non-error output")
+        grp.add_argument('--no-color', action='store_true',
+                         help="Disable colored output")
+        grp.add_argument('--dry-run', action='store_true',
+                         default=self.config.dry_run_by_default,
+                         help="Simulate without making changes")
+        grp.add_argument('--log-file', type=str, metavar="FILE",
+                         help="Write logs to file")
+    
+    def set_handler(self, command: str, handler: Callable[[argparse.Namespace, 'CLIBase'], None]) -> None:
+        """Set or update the handler for a subcommand."""
+        self._handlers[command] = handler
+        if command in self._subcommands:
+            self._subcommands[command].handler = handler
+    
+    def run(self) -> None:
+        """Execute the handler for the parsed subcommand. Must be called after parse_args()."""
+        if not self.args:
+            raise RuntimeError("parse_args() must be called before run()")
+        
+        command = getattr(self.args, 'command', None)
+        if not command:
+            self.parser.print_help()
+            sys.exit(1)
+        
+        handler = self._handlers.get(command)
+        if handler:
+            handler(self.args, self)
+        else:
+            print_error(f"No handler registered for command: {command}")
+            sys.exit(1)
     
     def _add_global_arguments(self) -> None:
         """Add global arguments available to all CLI tools."""
@@ -591,28 +733,58 @@ def create_cli(
 # ============================================================================
 
 if __name__ == "__main__":
-    # Example: Create CLI for a data export tool
-    cli = create_cli(
+    # Example: Create CLI with subcommands
+    
+    def run_export(args, cli):
+        """Handler for export subcommand."""
+        cli.increment_stat('processed', 100)
+        cli.increment_stat('success', 95)
+        cli.increment_stat('errors', 5)
+        cli.print_final_summary()
+    
+    def run_import(args, cli):
+        """Handler for import subcommand."""
+        print_info(f"Importing from {args.source}")
+        cli.increment_stat('imported', 50)
+        cli.print_final_summary()
+    
+    cli = CLIBase(
         prog="{module_name}",
         description="{description}",
-        version="{version}",
-        connection_type="{connection_type}",
-        operation_type="{operation_type}"
+        version="{version}"
     )
     
+    # Initialize subcommands
+    cli.init_subcommands()
+    
+    # Add export subcommand
+    export_parser = cli.add_subcommand(
+        "export", 
+        "Export data to file",
+        handler=run_export,
+        aliases=["e"]
+    )
+    export_parser.add_argument('--format', '-f', required=True, choices=['csv', 'json'])
+    export_parser.add_argument('--output', '-o', required=True)
+    
+    # Add import subcommand
+    import_parser = cli.add_subcommand(
+        "import",
+        "Import data from file", 
+        handler=run_import,
+        aliases=["i"]
+    )
+    import_parser.add_argument('--source', '-s', required=True)
+    import_parser.add_argument('--format', '-f', required=True, choices=['csv', 'json'])
+    
+    # Parse and run
     args = cli.parse_args()
-    
-    # Your tool logic here...
-    cli.increment_stat('processed', 100)
-    cli.increment_stat('success', 95)
-    cli.increment_stat('errors', 5)
-    
-    cli.print_final_summary()
+    cli.run()
 ```
 
 ## Usage Guidelines
 
-### Quick Start
+### Quick Start (Without Subcommands)
 
 Replace template variables and customize argument groups:
 
@@ -642,20 +814,63 @@ except Exception as e:
     cli.exit_with_error(str(e))
 ```
 
+### Quick Start (With Subcommands)
+
+```python
+# my_tool.py
+from cli import CLIBase, print_success, print_info
+
+def run_convert(args, cli):
+    print_info(f"Converting {args.input} to {args.output}")
+    cli.increment_stat('converted', 1)
+    cli.print_final_summary()
+
+def run_validate(args, cli):
+    print_info(f"Validating {args.input}")
+    print_success("File is valid")
+
+cli = CLIBase(
+    prog="my_tool",
+    description="Multi-purpose data tool",
+    version="1.0.0"
+)
+
+# Initialize subcommands
+cli.init_subcommands()
+
+# Add convert subcommand
+convert_parser = cli.add_subcommand("convert", "Convert files", handler=run_convert, aliases=["c"])
+convert_parser.add_argument('--input', '-i', required=True)
+convert_parser.add_argument('--output', '-o', required=True)
+
+# Add validate subcommand  
+validate_parser = cli.add_subcommand("validate", "Validate files", handler=run_validate, aliases=["v"])
+validate_parser.add_argument('--input', '-i', required=True)
+
+# Parse and execute
+args = cli.parse_args()
+cli.run()
+```
+
 ### Command Examples
 
 ```bash
-# Basic usage
+# Without subcommands
 python my_exporter.py --db-type postgresql --db-name mydb -f csv -o output.csv
 
+# With subcommands
+python my_tool.py convert -i data.json -o output.csv
+python my_tool.py c -i data.json -o output.csv  # using alias
+python my_tool.py validate -i data.json
+
 # With verbosity and dry-run
-python my_exporter.py -vv --dry-run --db-type sqlite --db-name test.db -f json -o out.json
+python my_tool.py convert -vv --dry-run -i test.json -o out.csv
 
 # Load arguments from file
-python my_exporter.py @production_params.txt
+python my_tool.py @production_params.txt
 
 # With logging to file
-python my_exporter.py --log-file export.log --db-type mysql --db-name prod -f excel -o report.xlsx
+python my_tool.py convert --log-file export.log -i data.json -o report.csv
 ```
 
 ### Parameter File Format (@params.txt)
@@ -674,6 +889,40 @@ csv
 --verbose
 ```
 
+### Environment Variables
+
+Configure via environment variables with custom prefix:
+
+```bash
+# PowerShell
+$env:MYTOOL_DB__HOST = "localhost"
+$env:MYTOOL_DB__PORT = "5432"
+$env:MYTOOL_APP__DEBUG = "true"
+
+# Unix/Linux  
+export MYTOOL_DB__HOST=localhost
+export MYTOOL_DB__PORT=5432
+```
+
+Nested keys use double underscore: `PREFIX_SECTION__KEY` → `section.key`
+
+### Configuration File
+
+Load settings from JSON config file:
+
+```bash
+python my_tool.py --config-file config.json --format csv -o output.csv
+```
+
+### Resolution Priority
+
+When the same setting is defined in multiple sources:
+
+1. **CLI arguments** (`--host`, `-v`) - highest priority
+2. **Environment variables** (`PREFIX_*`)
+3. **Config file** (`--config-file`)
+4. **Default values** - lowest priority
+
 ## Customization Points
 
 | Component | How to Customize |
@@ -681,6 +930,7 @@ csv
 | **Colors** | Override `Colors` class attributes or call `Colors.disable()` |
 | **Output formats** | Pass custom list to `add_export_group(formats=[...])` |
 | **Connection types** | Add new `add_*_connection_group()` methods |
+| **Subcommands** | Use `add_subcommand()` with custom handlers |
 | **Validation** | Override `_post_process_args()` method |
 | **Help formatting** | Change `formatter_class` in parser construction |
 
@@ -729,11 +979,12 @@ Complete Python module with:
 1. Module docstring with usage examples
 2. Future imports and type hints
 3. `__all__` export list
-4. Enums and dataclasses (OutputFormat, LogLevel, Colors, CLIConfig)
+4. Enums and dataclasses (OutputFormat, LogLevel, Colors, CLIConfig, Subcommand)
 5. Output utilities (cprint, print_success, print_error, print_table, etc.)
 6. Main CLIBase class with instance methods
-7. Connection group methods (add_*_connection_group)
-8. Factory function `create_cli()`
+7. Subcommand support (init_subcommands, add_subcommand, run)
+8. Connection group methods (add_*_connection_group)
+9. Factory function `create_cli()`
 
 ### 2. `cli_example.py` - Usage Example
 
@@ -946,6 +1197,40 @@ csv
 --verbose
 \```
 
+### Environment Variables
+
+Configure via environment variables with custom prefix:
+
+\```bash
+# PowerShell
+$env:MYTOOL_DB__HOST = "localhost"
+$env:MYTOOL_DB__PORT = "5432"
+$env:MYTOOL_APP__DEBUG = "true"
+
+# Unix/Linux  
+export MYTOOL_DB__HOST=localhost
+export MYTOOL_DB__PORT=5432
+\```
+
+Nested keys use double underscore: `PREFIX_SECTION__KEY` → `section.key`
+
+### Configuration File
+
+Load settings from JSON config file:
+
+\```bash
+python my_tool.py --config-file config.json --format csv -o output.csv
+\```
+
+### Resolution Priority
+
+When the same setting is defined in multiple sources:
+
+1. **CLI arguments** (`--host`, `-v`) - highest priority
+2. **Environment variables** (`PREFIX_*`)
+3. **Config file** (`--config-file`)
+4. **Default values** - lowest priority
+
 ## Connection Types
 
 ### Active Directory (LDAP)
@@ -1045,10 +1330,38 @@ cli.add_api_connection_group()
 
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `--api-base-url` | Yes | Base API URL |
-| `--api-auth-type` | No | none, basic, bearer, api-key, oauth2 |
-| `--api-token` | No | Bearer token or API key |
-| `--api-timeout` | No | Request timeout (seconds) |
+| `--api-url` | Yes | API base URL |
+| `--api-key` | No | API key for authentication |
+| `--api-key-file` | No | Read API key from file |
+| `--timeout` | No | Request timeout in seconds (default: 30) |
+
+**Example: API Fetch Tool**
+
+\```python
+from cli import CLIBase, print_success
+
+def run_fetch(args, cli):
+    import httpx
+    headers = {'Authorization': f'Bearer {args.api_key}'} if args.api_key else {}
+    with httpx.Client(timeout=args.timeout) as client:
+        response = client.get(args.api_url, headers=headers)
+        data = response.json()
+    print_success(f"Fetched {len(data)} records")
+
+cli = CLIBase(prog="api_tool", description="API Tool", version="1.0.0")
+cli.init_subcommands()
+fetch = cli.add_subcommand("fetch", "Fetch from API", handler=run_fetch)
+cli.add_api_connection_group()
+fetch.add_argument('--output', '-o', required=True)
+
+args = cli.parse_args()
+cli.run()
+\```
+
+\```bash
+python api_tool.py fetch --api-url https://api.example.com/users -o users.json
+python api_tool.py fetch --api-url https://api.example.com/data --api-key sk-xxx -o data.json
+\```
 
 ## Output Utilities
 
@@ -1101,6 +1414,10 @@ print_summary(stats, title="RESULTS")
 | Method | Description |
 |--------|-------------|
 | `CLIBase(prog, description, version)` | Create CLI instance |
+| `init_subcommands(title, dest)` | Initialize subcommand support |
+| `add_subcommand(name, help, handler, aliases)` | Add a subcommand |
+| `set_handler(command, handler)` | Set/update subcommand handler |
+| `run()` | Execute the parsed subcommand's handler |
 | `add_example(example)` | Add usage example |
 | `add_examples(list)` | Add multiple examples |
 | `add_group(name, title)` | Add custom argument group |
@@ -1119,6 +1436,16 @@ print_summary(stats, title="RESULTS")
 | `get_elapsed_time()` | Get execution time |
 | `exit_success(message)` | Exit with code 0 |
 | `exit_error(message, code)` | Exit with error |
+
+### Subcommand Class
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | str | Subcommand name |
+| `help` | str | Help text |
+| `handler` | Callable | Function to handle this command |
+| `aliases` | List[str] | Alternative names |
+| `parser` | ArgumentParser | The subparser instance |
 
 ### Factory Function
 
@@ -1166,5 +1493,50 @@ from {module_name}.gears.cli import Colors
 
 Colors.SUCCESS = Colors.BLUE  # Change success color to blue
 Colors.disable()              # Disable all colors
+\```
+
+## CI/CD Integration (Optional)
+
+### Jenkins Pipeline
+
+\```groovy
+pipeline {
+    agent any
+    parameters {
+        string(name: 'INPUT_FILE', defaultValue: 'data/input/sample.json')
+        choice(name: 'FORMAT_OUT', choices: ['csv', 'json', 'xml', 'parquet'])
+    }
+    stages {
+        stage('Setup') {
+            steps {
+                sh 'curl -LsSf https://astral.sh/uv/install.sh | sh'
+                sh 'uv sync'
+            }
+        }
+        stage('Convert') {
+            steps {
+                sh "uv run python cli.py convert -i \${params.INPUT_FILE} -o output.\${params.FORMAT_OUT} -fi json -fo \${params.FORMAT_OUT}"
+            }
+        }
+    }
+    post {
+        success { archiveArtifacts artifacts: 'data/output/**' }
+    }
+}
+\```
+
+### GitHub Actions
+
+\```yaml
+name: Convert
+on: [push]
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync
+      - run: uv run python cli.py convert -i data.json -o out.csv -fi json -fo csv
 \```
 ```
