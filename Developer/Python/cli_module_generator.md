@@ -25,6 +25,7 @@ Generate a robust command-line interface module following Python best practices 
 | `{connection_type}` | Type of connection args | `database`, `ldap`, `api`, `none` |
 | `{operation_type}` | Primary operation type | `export`, `import`, `sync`, `audit` |
 | `{output_formats}` | Supported output formats | `csv,excel,json,sqlite` |
+| `{generate_jenkinsfile}` | Generate Jenkinsfile (optional) | `yes`, `no` |
 
 ## Module Structure
 
@@ -1540,3 +1541,69 @@ jobs:
       - run: uv run python cli.py convert -i data.json -o out.csv -fi json -fo csv
 \```
 ```
+
+### 4. `Jenkinsfile` - CI/CD Pipeline (Optional)
+
+Generate only when `{generate_jenkinsfile}` is `yes` **and** the project has CI/CD
+relevance (e.g., it produces artifacts, reports, or documents that benefit from
+automated generation and archival).
+
+Declarative Jenkins pipeline with:
+
+1. **Parameterized build** — Expose key CLI options as Jenkins parameters
+   (e.g., output format, locale, flags that map to `{output_formats}` and
+   connection/operation variables)
+2. **Environment block** — Map parameters to the tool's environment variables
+   or CLI flags
+3. **Stages**:
+   - `Setup` — Install Python + `uv sync` (or project-specific bootstrap)
+   - `Lint` (optional, gated by boolean parameter) — Run linter
+   - `Test` — Run `pytest` with `--no-color`, JUnit XML output, and coverage
+   - `Run / Generate` — Execute the CLI with `--no-color --quiet` and
+     relevant parameters
+   - `Verify` — List and validate generated outputs
+4. **Post-build** — `archiveArtifacts`, `junit`, optional `publishHTML`
+5. **Options** — `timestamps()`, `timeout`, `buildDiscarder`,
+   `disableConcurrentBuilds()`
+
+Place the file in `examples/Jenkinsfile` so it serves as a ready-to-copy
+starting point.
+
+\```groovy
+// {tool_name} - Jenkins Pipeline
+// Copy to repo root as "Jenkinsfile" and adjust parameters/stages.
+pipeline {
+    agent any
+    parameters {
+        // Map {output_formats} and key CLI flags to Jenkins UI params
+        choice(name: 'FORMAT', choices: [{output_formats}], description: 'Output format')
+        booleanParam(name: 'DRY_RUN', defaultValue: false, description: 'Simulate without changes')
+        booleanParam(name: 'RUN_LINT', defaultValue: true, description: 'Run linter')
+    }
+    environment {
+        PYTHONPATH = '.'
+    }
+    options {
+        timestamps()
+        timeout(time: 15, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        disableConcurrentBuilds()
+    }
+    stages {
+        stage('Setup')    { steps { sh 'pip install uv && uv sync --quiet' } }
+        stage('Lint')     { when { expression { params.RUN_LINT } }
+                            steps { sh 'uv run ruff check {module_name}/' } }
+        stage('Test')     { steps { sh 'uv run pytest tests/ -v --no-color --junitxml=reports/junit.xml' }
+                            post { always { junit 'reports/junit.xml' } } }
+        stage('Run')      { steps {
+            sh """uv run python -m {module_name} --no-color -q \\
+                   --format \${params.FORMAT} \\
+                   \${params.DRY_RUN ? '--dry-run' : ''}"""
+        }}
+    }
+    post {
+        success { archiveArtifacts artifacts: 'reports/**,output/**', fingerprint: true }
+        cleanup { cleanWs() }
+    }
+}
+\```
